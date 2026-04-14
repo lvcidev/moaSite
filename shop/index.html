@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="shortcut icon" href="../favicon/favicon.ico" type="image/x-icon">
+
+<title>Shop</title>
+
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="../global.css">
+
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+</head>
+
+<body>
+
+<header class="header">
+
+<div class="left">
+
+<button id="menuBtn" class="menu-btn">☰</button>
+<div class="logo">PRODUTORA</div>
+
+</div>
+
+<div class="search">
+
+<input type="text" placeholder="Pesquisar produtos...">
+<button>🔍</button>
+
+</div>
+
+<div class="right">
+
+<button id="cartBtn" class="cart-btn">
+🛒 <span id="cartCount">0</span>
+</button>
+
+<div id="loginArea">
+
+<div id="g_id_onload"
+data-client_id="SEU_CLIENT_ID_GOOGLE"
+data-callback="handleCredentialResponse">
+</div>
+
+<div class="g_id_signin"></div>
+
+</div>
+
+</div>
+
+</header>
+
+<!-- MENU -->
+
+<nav id="sidebar" class="sidebar">
+
+<a href="#">Serviços</a>
+<a href="#">Músicas</a>
+<a href="#">Clipes</a>
+<a href="#">Cursos</a>
+<a href="#">Games</a>
+<a href="shop.html">Shop</a>
+
+</nav>
+
+<!-- CARRINHO -->
+
+<aside id="cartSidebar" class="cart-sidebar">
+
+<h2>Carrinho</h2>
+
+<div id="cartItems"></div>
+
+<button class="checkout">Finalizar Compra</button>
+
+</aside>
+
+<main class="shop-content">
+
+<!-- CARROSSEL MUSICA -->
+
+<section class="shop-row">
+
+<h2>Música / Clipes / Edição</h2>
+
+<div class="carousel-row">
+
+<div class="product">
+<img src="https://picsum.photos/200/150?1">
+<h4>Beat Trap</h4>
+<button onclick="addToCart('Beat Trap')">Adicionar</button>
+</div>
+
+<div class="product">
+<img src="https://picsum.photos/200/150?2">
+<h4>Mixagem</h4>
+<button onclick="addToCart('Mixagem')">Adicionar</button>
+</div>
+
+<div class="product">
+<img src="https://picsum.photos/200/150?3">
+<h4>Edição de Vídeo</h4>
+<button onclick="addToCart('Edição de Vídeo')">Adicionar</button>
+</div>
+
+<div class="product">
+<img src="https://picsum.photos/200/150?4">
+<h4>Animação</h4>
+<button onclick="addToCart('Animação')">Adicionar</button>
+</div>
+
+</div>
+
+</section>
+
+<!-- CARROSSEL ROUPAS -->
+
+<section class="shop-row">
+
+<h2>Roupas</h2>
+
+<div class="carousel-row">
+
+<div class="product">
+<img src="https://picsum.photos/200/150?5">
+<h4>Boné</h4>
+<button onclick="addToCart('Boné')">Adicionar</button>
+</div>
+
+<div class="product">
+<img src="https://picsum.photos/200/150?6">
+<h4>Blusa</h4>
+<button onclick="addToCart('Blusa')">Adicionar</button>
+</div>
+
+<div class="product">
+<img src="https://picsum.photos/200/150?7">
+<h4>Camisa</h4>
+<button onclick="addToCart('Camisa')">Adicionar</button>
+</div>
+
+<div class="product">
+<img src="https://picsum.photos/200/150?8">
+<h4>Regata</h4>
+<button onclick="addToCart('Regata')">Adicionar</button>
+</div>
+
+</div>
+
+</section>
+
+</main>
+
+<script src="script.js"></script>
+<script src="login.js"></script>
+
+</body>
+</html>
