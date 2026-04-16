@@ -1,176 +1,284 @@
-const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+// ===============================
+// CANVAS
+// ===============================
 
-//////////////////////////////////////////////////
-// INPUT SYSTEM
-//////////////////////////////////////////////////
+const canvas = document.getElementById("game")
+const ctx = canvas.getContext("2d")
 
-const keys = {};
+ctx.imageSmoothingEnabled = false
 
-document.addEventListener("keydown", e=>{
-    keys[e.key] = true;
-});
-
-document.addEventListener("keyup", e=>{
-    keys[e.key] = false;
-});
-
-// MOBILE INPUT
-function bindTouch(id,key){
-    const btn = document.getElementById(id);
-
-    btn.addEventListener("touchstart",()=>{
-        keys[key]=true;
-    });
-
-    btn.addEventListener("touchend",()=>{
-        keys[key]=false;
-    });
+// canvas menor no PC
+if(window.innerWidth > 900){
+    canvas.width = 900
+    canvas.height = 500
+}else{
+    canvas.width = window.innerWidth
+    canvas.height = window.innerHeight * 0.6
 }
 
-bindTouch("left","ArrowLeft");
-bindTouch("right","ArrowRight");
-bindTouch("jump"," ");
-bindTouch("attack","z");
+// ===============================
+// LOAD ASSETS
+// ===============================
 
-//////////////////////////////////////////////////
-// LOAD IMAGES
-//////////////////////////////////////////////////
+const bg = new Image()
+bg.src = "assets/bg.png"
 
-const bg = new Image();
-bg.src = "assets/bg.png";
+const playerImg = new Image()
+playerImg.src = "assets/player.png"
 
-const playerIdle = new Image();
-playerIdle.src = "assets/player_idle.png";
+const enemyImg = new Image()
+enemyImg.src = "assets/enemy.png"
 
-const playerAttack = new Image();
-playerAttack.src = "assets/player_attack.png";
+// ===============================
+// CONFIG SPRITE
+// ===============================
 
-const playerHit = new Image();
-playerHit.src = "assets/player_hit.png";
+const FRAME_W = 40
+const FRAME_H = 64
+const START_X = 16
+const TOTAL_FRAMES = 6
 
-const enemyIdle = new Image();
-enemyIdle.src = "assets/enemy_idle.png";
+const SCALE = 3
 
-//////////////////////////////////////////////////
+// ajuste fino da altura
+const GROUND_OFFSET = 90
+
+// ===============================
+// GAME STATE
+// ===============================
+
+let gameStarted = false
+
+// ===============================
 // PLAYER
-//////////////////////////////////////////////////
+// ===============================
 
 const player = {
-    x:100,
-    y:300,
-    w:64,
-    h:64,
-    vx:0,
-    vy:0,
-    speed:4,
-    jump:-12,
-    grounded:false,
-    state:"idle"
-};
+    x: 40,
+    y: 0,
+    speed: 4,
 
-//////////////////////////////////////////////////
+    frame:0,
+    timer:0,
+
+    facing:1 // olhando direita
+}
+
+// ===============================
 // ENEMY
-//////////////////////////////////////////////////
+// ===============================
 
 const enemy = {
-    x:600,
-    y:300,
-    w:64,
-    h:64
-};
-
-//////////////////////////////////////////////////
-// GRAVITY
-//////////////////////////////////////////////////
-
-const gravity = 0.6;
-const groundY = 350;
-
-//////////////////////////////////////////////////
-// UPDATE
-//////////////////////////////////////////////////
-
-function update(){
-
-    // MOVIMENTO
-    player.vx = 0;
-
-    if(keys["ArrowLeft"])
-        player.vx = -player.speed;
-
-    if(keys["ArrowRight"])
-        player.vx = player.speed;
-
-    if(keys[" "] && player.grounded){
-        player.vy = player.jump;
-        player.grounded = false;
-    }
-
-    if(keys["z"])
-        player.state="attack";
-    else
-        player.state="idle";
-
-    // GRAVIDADE
-    player.vy += gravity;
-
-    player.x += player.vx;
-    player.y += player.vy;
-
-    // COLISÃO COM PLATAFORMA (imagem única)
-    if(player.y >= groundY){
-        player.y = groundY;
-        player.vy = 0;
-        player.grounded = true;
-    }
+    x:0,
+    y:0,
+    frame:0,
+    timer:0,
+    facing:-1
 }
 
-//////////////////////////////////////////////////
-// DRAW
-//////////////////////////////////////////////////
+// ===============================
+// INPUT
+// ===============================
 
-function draw(){
+const keys = {}
 
-    ctx.clearRect(0,0,canvas.width,canvas.height);
+document.addEventListener("keydown",e=>{
 
-    // BACKGROUND
-    ctx.drawImage(bg,0,0,canvas.width,canvas.height);
+keys[e.key]=true
 
-    // PLAYER SPRITE
-    let sprite = playerIdle;
+if(e.key==="Enter")
+gameStarted=true
 
-    if(player.state==="attack")
-        sprite = playerAttack;
+})
 
-    ctx.drawImage(
-        sprite,
-        player.x,
-        player.y,
-        player.w,
-        player.h
-    );
+document.addEventListener("keyup",e=>{
+keys[e.key]=false
+})
 
-    // ENEMY
-    ctx.drawImage(
-        enemyIdle,
-        enemy.x,
-        enemy.y,
-        enemy.w,
-        enemy.h
-    );
+// ===============================
+// MOBILE CONTROLS
+// ===============================
+
+function createMobileControls(){
+
+if(window.innerWidth>900)return
+
+const controls=document.createElement("div")
+controls.id="mobileControls"
+
+controls.innerHTML=`
+<button id="left">◀</button>
+<button id="right">▶</button>
+`
+
+document.body.appendChild(controls)
+
+const press=(key,val)=>{
+keys[key]=val
 }
 
-//////////////////////////////////////////////////
-// GAME LOOP
-//////////////////////////////////////////////////
+document.getElementById("left")
+.addEventListener("touchstart",()=>press("ArrowLeft",true))
 
-function gameLoop(){
+document.getElementById("left")
+.addEventListener("touchend",()=>press("ArrowLeft",false))
 
-    update();
-    draw();
+document.getElementById("right")
+.addEventListener("touchstart",()=>press("ArrowRight",true))
 
-    requestAnimationFrame(gameLoop);
+document.getElementById("right")
+.addEventListener("touchend",()=>press("ArrowRight",false))
+
 }
 
-gameLoop();
+createMobileControls()
+
+// ===============================
+// PLAYER UPDATE
+// ===============================
+
+function updatePlayer(){
+
+let moving=false
+
+if(keys["ArrowLeft"]){
+player.x-=player.speed
+player.facing=-1
+moving=true
+}
+
+if(keys["ArrowRight"]){
+player.x+=player.speed
+player.facing=1
+moving=true
+}
+
+// animação correta
+if(moving){
+
+player.timer++
+
+if(player.timer>=6){
+player.timer=0
+player.frame++
+
+if(player.frame>=TOTAL_FRAMES)
+player.frame=0
+}
+
+}else{
+
+player.frame=0
+player.timer=0
+
+}
+
+}
+
+// ===============================
+// ENEMY UPDATE (IDLE LOOP)
+// ===============================
+
+function updateEnemy(){
+
+enemy.timer++
+
+if(enemy.timer>=12){
+enemy.timer=0
+enemy.frame++
+if(enemy.frame>=TOTAL_FRAMES)
+enemy.frame=0
+}
+
+}
+
+// ===============================
+// DRAW SPRITE
+// ===============================
+
+function drawCharacter(img,char){
+
+const groundY =
+canvas.height -
+(FRAME_H*SCALE) -
+GROUND_OFFSET
+
+char.y=groundY
+
+ctx.save()
+
+ctx.translate(
+char.x + FRAME_W*SCALE/2,
+char.y
+)
+
+ctx.scale(char.facing,1)
+
+ctx.drawImage(
+img,
+START_X + char.frame*FRAME_W,
+0,
+FRAME_W,
+FRAME_H,
+-(FRAME_W*SCALE)/2,
+0,
+FRAME_W*SCALE,
+FRAME_H*SCALE
+)
+
+ctx.restore()
+
+}
+
+// ===============================
+// START POSITIONS
+// ===============================
+
+function setupPositions(){
+
+player.x=40
+player.facing=1
+
+enemy.x=canvas.width-140
+enemy.facing=-1
+
+}
+
+// ===============================
+// LOOP
+// ===============================
+
+function loop(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height)
+
+// BG
+ctx.drawImage(bg,0,0,canvas.width,canvas.height)
+
+if(!gameStarted){
+
+ctx.fillStyle="white"
+ctx.font="28px Arial"
+ctx.textAlign="center"
+ctx.fillText(
+"PRESSIONE ENTER",
+canvas.width/2,
+canvas.height/2
+)
+
+requestAnimationFrame(loop)
+return
+}
+
+updatePlayer()
+updateEnemy()
+
+drawCharacter(playerImg,player)
+drawCharacter(enemyImg,enemy)
+
+requestAnimationFrame(loop)
+
+}
+
+setupPositions()
+loop()
