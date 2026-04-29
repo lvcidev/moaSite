@@ -2,77 +2,13 @@
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
-<title>Cursed Hunter</title>
-
-<style>
-
-body{
-margin:0;
-background:black;
-overflow:hidden;
-font-family:sans-serif;
-}
-
-canvas{
-display:block;
-margin:auto;
-background:black;
-image-rendering:pixelated;
-}
-
-/* =====================
-   MOBILE CONTROLS
-===================== */
-
-#mobileControls{
-display:none;
-position:fixed;
-bottom:10px;
-width:100%;
-justify-content:space-between;
-padding:0 20px;
-box-sizing:border-box;
-}
-
-.btn{
-width:70px;
-height:70px;
-background:rgba(255,255,255,0.2);
-border-radius:50%;
-display:flex;
-justify-content:center;
-align-items:center;
-font-size:22px;
-color:white;
-user-select:none;
-}
-
-/* aparece só em mobile */
-@media(max-width:900px){
-#mobileControls{
-display:flex;
-}
-}
-
-</style>
+<title>Sincretismo</title>
+<link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-<canvas id="game" width="960" height="540"></canvas>
-
-<div id="mobileControls">
-
-<div>
-<div class="btn" id="left">◀</div>
-<div class="btn" id="right">▶</div>
-</div>
-
-<div>
-<div class="btn" id="attack">⚔</div>
-</div>
-
-</div>
+<canvas id="game"></canvas>
 
 <script src="game.js"></script>
 

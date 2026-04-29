@@ -1,47 +1,14 @@
 body{
     margin:0;
-    background:#000;
+    background:black;
+    overflow:hidden;
     display:flex;
     justify-content:center;
     align-items:center;
     height:100vh;
-    font-family:sans-serif;
-}
-
-#game-container{
-    text-align:center;
 }
 
 canvas{
-    border:3px solid #111;
     image-rendering: pixelated;
-    max-width:100%;
-}
-
-/* MOBILE CONTROLS */
-
-#mobile-controls{
-    display:none;
-    margin-top:10px;
-}
-
-button{
-    font-size:22px;
-    padding:15px;
-    margin:5px;
-    border:none;
-    border-radius:10px;
-    background:#222;
-    color:white;
-}
-
-.dpad, .actions{
-    display:inline-block;
-}
-
-/* Detecta Mobile */
-@media (max-width: 900px){
-    #mobile-controls{
-        display:block;
-    }
+    border:3px solid black;
 }

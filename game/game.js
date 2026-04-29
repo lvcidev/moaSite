@@ -1,284 +1,369 @@
-// ===============================
-// CANVAS
-// ===============================
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
 
-const canvas = document.getElementById("game")
-const ctx = canvas.getContext("2d")
+canvas.width = 960;
+canvas.height = 540;
 
-ctx.imageSmoothingEnabled = false
 
-// canvas menor no PC
-if(window.innerWidth > 900){
-    canvas.width = 900
-    canvas.height = 500
-}else{
-    canvas.width = window.innerWidth
-    canvas.height = window.innerHeight * 0.6
+/* ======================== LOAD ======================== */
+
+function load(src){
+    const img=new Image();
+    img.src=src;
+    return img;
 }
 
-// ===============================
-// LOAD ASSETS
-// ===============================
+const startBG=load("assets/backgrounds/screenStart.png");
+const selectBG=load("assets/backgrounds/fightSelector.png");
+const fightBG=load("assets/backgrounds/bosqueBg/bosqueBg.png");
 
-const bg = new Image()
-bg.src = "assets/bg.png"
+const luciImg=load("assets/players/luci/luciBase.png");
+const nateImg=load("assets/players/nate/nateBase.png");
 
-const playerImg = new Image()
-playerImg.src = "assets/player.png"
+const characters=[
+    {name:"luci",img:luciImg},
+    {name:"nate",img:nateImg}
+];
 
-const enemyImg = new Image()
-enemyImg.src = "assets/enemy.png"
 
-// ===============================
-// CONFIG SPRITE
-// ===============================
+/* ======================== STATE ======================== */
 
-const FRAME_W = 40
-const FRAME_H = 64
-const START_X = 16
-const TOTAL_FRAMES = 6
+let gameState="start";
+let playerChoice=null;
+let enemyChoice=null;
+let cursor=0;
 
-const SCALE = 3
+const keys={};
 
-// ajuste fino da altura
-const GROUND_OFFSET = 90
 
-// ===============================
-// GAME STATE
-// ===============================
-
-let gameStarted = false
-
-// ===============================
-// PLAYER
-// ===============================
-
-const player = {
-    x: 40,
-    y: 0,
-    speed: 4,
-
-    frame:0,
-    timer:0,
-
-    facing:1 // olhando direita
-}
-
-// ===============================
-// ENEMY
-// ===============================
-
-const enemy = {
-    x:0,
-    y:0,
-    frame:0,
-    timer:0,
-    facing:-1
-}
-
-// ===============================
-// INPUT
-// ===============================
-
-const keys = {}
+/* ======================== INPUT ======================== */
 
 document.addEventListener("keydown",e=>{
 
-keys[e.key]=true
+    if(gameState==="start" && e.key==="Enter")
+        gameState="select";
 
-if(e.key==="Enter")
-gameStarted=true
+    else if(gameState==="select"){
 
-})
+        if(e.key==="ArrowRight")cursor=1;
+        if(e.key==="ArrowLeft")cursor=0;
 
-document.addEventListener("keyup",e=>{
-keys[e.key]=false
-})
+        if(e.key==="Enter"){
 
-// ===============================
-// MOBILE CONTROLS
-// ===============================
+            if(!playerChoice){
+                playerChoice=characters[cursor];
+                cursor=0;
+                return;
+            }
 
-function createMobileControls(){
+            if(!enemyChoice){
+                enemyChoice=characters[cursor];
+                startFight();
+            }
+        }
+    }
 
-if(window.innerWidth>900)return
+    if(gameState==="fight"){
+        keys[e.key]=true;
 
-const controls=document.createElement("div")
-controls.id="mobileControls"
+        if(e.key==="k")player.attack(false);
+        if(e.key===" ")player.attack(true);
+    }
+});
 
-controls.innerHTML=`
-<button id="left">◀</button>
-<button id="right">▶</button>
-`
+document.addEventListener("keyup",e=>keys[e.key]=false);
 
-document.body.appendChild(controls)
 
-const press=(key,val)=>{
-keys[key]=val
+/* ======================== START ======================== */
+
+function drawStart(){
+    ctx.drawImage(startBG,0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="white";
+    ctx.font="28px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("PRESS ENTER",canvas.width/2,canvas.height-80);
 }
 
-document.getElementById("left")
-.addEventListener("touchstart",()=>press("ArrowLeft",true))
 
-document.getElementById("left")
-.addEventListener("touchend",()=>press("ArrowLeft",false))
+/* ======================== SELECT ======================== */
 
-document.getElementById("right")
-.addEventListener("touchstart",()=>press("ArrowRight",true))
+function drawCharacter(c,x,y,flip=false){
 
-document.getElementById("right")
-.addEventListener("touchend",()=>press("ArrowRight",false))
+    ctx.save();
 
+    if(flip){
+        ctx.scale(-1,1);
+        x=-x-150;
+    }
+
+    ctx.drawImage(c.img,0,0,120,150,x,y,150,190);
+
+    ctx.restore();
 }
 
-createMobileControls()
+function drawSelect(){
 
-// ===============================
-// PLAYER UPDATE
-// ===============================
+    ctx.drawImage(selectBG,0,0,canvas.width,canvas.height);
 
-function updatePlayer(){
+    const current=characters[cursor];
 
-let moving=false
+    const leftX=180;
+    const rightX=630;
+    const dynamicY=150;
 
-if(keys["ArrowLeft"]){
-player.x-=player.speed
-player.facing=-1
-moving=true
+    if(playerChoice)
+        drawCharacter(playerChoice,leftX,dynamicY);
+    else
+        drawCharacter(current,leftX,dynamicY);
+
+    if(playerChoice && enemyChoice)
+        drawCharacter(enemyChoice,rightX,dynamicY,true);
+    else if(playerChoice)
+        drawCharacter(current,rightX,dynamicY,true);
+
+    ctx.fillStyle="white";
+    ctx.font="22px Arial";
+    ctx.textAlign="center";
+
+    if(!playerChoice)
+        ctx.fillText("Choose Player",480,60);
+    else if(!enemyChoice)
+        ctx.fillText("Choose Enemy",480,60);
 }
 
-if(keys["ArrowRight"]){
-player.x+=player.speed
-player.facing=1
-moving=true
+
+/* ======================== FIGHTER ======================== */
+
+class Fighter{
+
+    constructor(character,x){
+
+        this.character=character;
+
+        this.x=x;
+
+        /* GROUND DESCIDO */
+        this.ground=400;
+        this.y=this.ground;
+
+        /* PERSONA -5% */
+        this.w=170;
+        this.h=218;
+
+        this.velX=0;
+        this.velY=0;
+
+        this.speed=5;
+        this.jump=-20;
+        this.gravity=0.9;
+
+        this.onGround=true;
+
+        this.hp=1000;
+
+        /* ANIMAÇÃO */
+        this.frame=0;
+        this.frameTimer=0;
+        this.state="idle";
+
+        this.attacking=false;
+        this.attackTimer=0;
+        this.ki=false;
+    }
+
+    attack(isKi){
+
+        if(this.attacking)return;
+
+        this.attacking=true;
+        this.attackTimer=20;
+        this.ki=isKi;
+        this.state="attack";
+    }
+
+    update(enemy){
+
+        this.x+=this.velX;
+
+        this.velY+=this.gravity;
+        this.y+=this.velY;
+
+        if(this.y>=this.ground){
+            this.y=this.ground;
+            this.velY=0;
+            this.onGround=true;
+        }
+
+        /* STATE */
+        if(this.attacking) this.state="attack";
+        else if(!this.onGround) this.state="jump";
+        else if(this.velX!==0) this.state="walk";
+        else this.state="idle";
+
+        /* FRAME CONTROL */
+        this.frameTimer++;
+
+        if(this.frameTimer>8){
+            this.frame++;
+            this.frameTimer=0;
+        }
+
+        const maxFrames={
+            idle:3,
+            walk:3,
+            jump:3,
+            attack:3
+        };
+
+        if(this.frame>=maxFrames[this.state])
+            this.frame=0;
+
+        /* DAMAGE */
+        if(this.attacking){
+
+            this.attackTimer--;
+
+            if(this.attackTimer===10){
+
+                if(Math.abs(this.x-enemy.x)<140)
+                    enemy.hp-=this.ki?200:100;
+            }
+
+            if(this.attackTimer<=0)
+                this.attacking=false;
+        }
+    }
+
+    draw(enemy){
+
+        ctx.save();
+
+        const facing=enemy.x>this.x?1:-1;
+
+        ctx.translate(this.x,this.y);
+
+        if(facing===-1)ctx.scale(-1,1);
+
+        const row={
+            idle:0,
+            walk:1,
+            jump:2,
+            attack:3
+        }[this.state];
+
+        ctx.drawImage(
+            this.character.img,
+            this.frame*120,
+            row*150,
+            120,150,
+            -this.w/2,
+            -this.h,
+            this.w,
+            this.h
+        );
+
+        ctx.restore();
+    }
 }
 
-// animação correta
-if(moving){
 
-player.timer++
+/* ======================== FIGHT ======================== */
 
-if(player.timer>=6){
-player.timer=0
-player.frame++
+let player;
+let enemy;
+let resultText="";
 
-if(player.frame>=TOTAL_FRAMES)
-player.frame=0
+function startFight(){
+    player=new Fighter(playerChoice,250);
+    enemy=new Fighter(enemyChoice,700);
+    gameState="fight";
 }
 
-}else{
+function drawLife(){
 
-player.frame=0
-player.timer=0
+    const max=300;
 
+    ctx.fillStyle="red";
+    ctx.fillRect(40,30,max,20);
+    ctx.fillStyle="lime";
+    ctx.fillRect(40,30,max*(player.hp/1000),20);
+    ctx.fillText(player.character.name,190,70);
+
+    ctx.fillStyle="red";
+    ctx.fillRect(canvas.width-340,30,max,20);
+    ctx.fillStyle="lime";
+    ctx.fillRect(canvas.width-340,30,max*(enemy.hp/1000),20);
+    ctx.fillText(enemy.character.name,canvas.width-190,70);
 }
 
+function updateFight(){
+
+    player.velX=0;
+
+    if(keys["a"])player.velX=-player.speed;
+    if(keys["d"])player.velX=player.speed;
+
+    if(keys["w"]&&player.onGround){
+        player.velY=player.jump;
+        player.onGround=false;
+    }
+
+    enemy.velX=player.x<enemy.x?-2:2;
+
+    if(Math.random()<0.01)
+        enemy.attack(false);
+
+    player.update(enemy);
+    enemy.update(player);
+
+    if(player.hp<=0){
+        resultText="GAME OVER";
+        gameState="end";
+    }
+
+    if(enemy.hp<=0){
+        resultText="WIN";
+        gameState="end";
+    }
 }
 
-// ===============================
-// ENEMY UPDATE (IDLE LOOP)
-// ===============================
-
-function updateEnemy(){
-
-enemy.timer++
-
-if(enemy.timer>=12){
-enemy.timer=0
-enemy.frame++
-if(enemy.frame>=TOTAL_FRAMES)
-enemy.frame=0
+function drawFight(){
+    ctx.drawImage(fightBG,0,0,canvas.width,canvas.height);
+    player.draw(enemy);
+    enemy.draw(player);
+    drawLife();
 }
 
+
+/* ======================== END ======================== */
+
+function drawEnd(){
+    ctx.fillStyle="black";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    ctx.fillStyle="white";
+    ctx.font="50px Arial";
+    ctx.textAlign="center";
+    ctx.fillText(resultText,canvas.width/2,canvas.height/2);
 }
 
-// ===============================
-// DRAW SPRITE
-// ===============================
 
-function drawCharacter(img,char){
-
-const groundY =
-canvas.height -
-(FRAME_H*SCALE) -
-GROUND_OFFSET
-
-char.y=groundY
-
-ctx.save()
-
-ctx.translate(
-char.x + FRAME_W*SCALE/2,
-char.y
-)
-
-ctx.scale(char.facing,1)
-
-ctx.drawImage(
-img,
-START_X + char.frame*FRAME_W,
-0,
-FRAME_W,
-FRAME_H,
--(FRAME_W*SCALE)/2,
-0,
-FRAME_W*SCALE,
-FRAME_H*SCALE
-)
-
-ctx.restore()
-
-}
-
-// ===============================
-// START POSITIONS
-// ===============================
-
-function setupPositions(){
-
-player.x=40
-player.facing=1
-
-enemy.x=canvas.width-140
-enemy.facing=-1
-
-}
-
-// ===============================
-// LOOP
-// ===============================
+/* ======================== LOOP ======================== */
 
 function loop(){
 
-ctx.clearRect(0,0,canvas.width,canvas.height)
+    ctx.clearRect(0,0,canvas.width,canvas.height);
 
-// BG
-ctx.drawImage(bg,0,0,canvas.width,canvas.height)
+    if(gameState==="start")drawStart();
+    if(gameState==="select")drawSelect();
+    if(gameState==="fight"){
+        updateFight();
+        drawFight();
+    }
+    if(gameState==="end")drawEnd();
 
-if(!gameStarted){
-
-ctx.fillStyle="white"
-ctx.font="28px Arial"
-ctx.textAlign="center"
-ctx.fillText(
-"PRESSIONE ENTER",
-canvas.width/2,
-canvas.height/2
-)
-
-requestAnimationFrame(loop)
-return
+    requestAnimationFrame(loop);
 }
 
-updatePlayer()
-updateEnemy()
-
-drawCharacter(playerImg,player)
-drawCharacter(enemyImg,enemy)
-
-requestAnimationFrame(loop)
-
-}
-
-setupPositions()
-loop()
+loop();
